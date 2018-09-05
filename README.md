@@ -1,2 +1,117 @@
-# chip8
-A CHIP8 virtual machine
+# About CHIP-8
+CHIP8 is a simple, interpreted, programming language which was first used on some do-it-yourself computer systems in the late 1970s and early 1980s. The COSMAC VIP, DREAM 6800, and ETI computers are a few examples. These computers typically were designed to use a television as a display, had between 1 and 4K of RAM, and used a 16-key hexadecimal keypad for input.
+
+In the early 1990s, the CHIP-8 language was revived by a man named Andreas Gustafsson. He created a CHIP-8 interpreter for the HP graphing calculator, called CHIP-48. The HP48 was lacking a way to easily make fast games at the time, and CHIp-8 was the answer. CHIP-48 later begat Super CHIP48, a modification of CHIP-48 which allowed higher resolution graphics, as well as other graphical enhancements.
+
+# CHIP-8 specifications
+## Memory
+The CHIP-8 language is capable of accessing up to 4KB (4096 bytes) of RAM, from location 0x000 to 0xFFF. The first 512 bytes, from 0x000 to 0x1FF, are where the original interpreter was located, and should not be used by programs.
+
+Most CHIP-8 programs start at location 0x200, but some begin at 0x600. Programs beginning at 0x600 are intended for the ETI 660 computer.
+
+**Memory Map:**
+```
++---------------+= 0xFFF (4095) End of CHIP-8 RAM
+|               |
+|               |
+|               |
+|               |
+|               |
+| 0x200 to 0xFFF|
+|     CHIP-8    |
+| Program / Data|
+|     Space     |
+|               |
+|               |
+|               |
++- - - - - - - -+= 0x600 (1536) Start of ETI 660 CHIP-8 programs
+|               |
+|               |
+|               |
++---------------+= 0x200 (512) Start of most CHIP-8 programs
+| 0x000 to 0x1FF|
+| Reserved for  |
+|  interpreter  |
++---------------+= 0x000 (0) Start of CHIP-8 RAM`
+```
+
+## Registers
+CHIP-8 has 16 general purpose 8-bit registers, usually referred to as Vx, where x is a hexadecimal digit (0 through F). The 16th register is used for the 'carry flag'.
+
+There is also a 16-bit register called I. This register is generally used to store memory addresses, so only the lowest (rightmost) 12 bits are usually used.
+
+CHIP-8 also has two special purpose 8-bit registers, for the delay and sound timers. When these registers are non-zero, they are automatically decremented at a rate of 60Hz.
+
+There are also some "pseudo-registers" which are not accessable from CHIP-8 programs. The program counter (PC) should be 16-bit, and is used to store the currently executing address. The stack pointer (SP) can be 8-bit, it is used to point to the topmost level of the stack.
+
+The stack is an array of 16 16-bit values, used to store the address that the interpreter shoud return to when finished with a subroutine. CHIP-8 allows for up to 16 levels of nested subroutines.
+
+## Keyboard
+
+The computers which originally used the CHIP-8 Language had a 16-key hexadecimal keypad with the following layout:
+
+| - | - | - | - | - | - |
+| - |---|---|---|---| - |
+| * | 1 | 2 | 3 | C | * |
+| * | 4 | 5 | 6 | D | * |
+| * | 7 | 8 | 9 | E | * |
+| * | A | 0 | B | F | * |
+| - | - | - | - | - | - |
+
+This layout must be mapped into various other configurations to fit the keyboards of today's platforms.
+
+## Display
+The original implementation of the CHIP-8 language used a 64x32-pixel monochrome display with this format:
+```
+=================
+|(0,0)   (63,0) |
+|(0,31)  (63,31)|
+=================
+```
+Some other interpreters, most notably the one on the ETI 660, also had 64x48 and 64x64 modes. To my knowledge, no current interpreter supports these modes. More recently, Super CHIP-48, an interpreter for the HP48 calculator, added a 128x64-pixel mode. This mode is now supported by most of the interpreters on other platforms.
+
+CHIP-8 draws graphics on screen through the use of sprites. A sprite is a group of bytes which are a binary representation of the desired picture. CHIP-8 sprites may be up to 15 bytes, for a possible sprite size of 8x15.
+
+Programs may also refer to a group of sprites representing the hexadecimal digits 0 through F. These sprites are 5 bytes long, or 8x5 pixels. The data should be stored in the interpreter area of CHIP-8 memory (0x000 to 0x1FF).
+
+**"0" character in binary and hexadecimal**
+```
+--------------------------
+| Char | Bin      | Hex  |
+|------|----------|------|
+| **** | 11110000 | 0xF0 |
+| *  * | 10010000 | 0x90 |
+| *  * | 10010000 | 0x90 |
+| *  * | 10010000 | 0x90 |
+| **** | 11110000 | 0xF0 |
+--------------------------
+```
+
+## Timers and Sound
+CHIP-8 provides 2 timers, a delay timer and a sound timer.
+
+The delay timer is active whenever the delay timer register (DT) is non-zero. This timer does nothing more than subtract 1 from the value of DT at a rate of 60Hz. When DT reaches 0, it deactivates.
+
+The sound timer is active whenever the sound timer register (ST) is non-zero. This timer also decrements at a rate of 60Hz, however, as long as ST's value is greater than zero, the CHIP-8 buzzer will sound. When ST reaches zero, the sound timer deactivates.
+
+The sound produced by the CHIP-8 interpreter has only one tone. The frequency of this tone is decided by the author of the interpreter.
+
+## CHIP-8 Instructions
+The original implementation of the CHIP-8 language includes 36 different instructions, including math, graphics, and flow control functions.
+
+Super CHIP-48 added an additional	10 instructions, for a total of 46.
+
+All instructions are 2 bytes long and are stored most-significant-byte first. In memory, the first byte of each instruction should be located at an even addresses. If a program includes sprite data, it should be padded so any instructions following it will be properly situated in RAM.
+
+This document does not yet contain descriptions of the Super CHIP-48 instructions. They are, however, listed below.
+
+In these listings, the following variables are used:
+```
+nnn or addr - A 12-bit value, the lowest 12 bits of the instruction
+n or nibble - A 4-bit value, the lowest 4 bits of the instruction
+x - A 4-bit value, the lower 4 bits of the high byte of the instruction
+y - A 4-bit value, the upper 4 bits of the low byte of the instruction
+kk or byte - An 8-bit value, the lowest 8 bits of the instruction
+```
+
+**[CHIP-8 Instructions Table](https://en.wikipedia.org/wiki/CHIP-8)**
