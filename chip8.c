@@ -135,11 +135,11 @@ void chip8_emulate_cycle(struct chip8 *chip)
 	switch (opcode & 0xF000) {
 	case 0x0000:
 		switch (OPCODE_GET_00N(opcode)) {
-			case 0x0000: /* 00E0 */
+		case 0x0000: /* 00E0 - CLS */
 			clear_screen(chip);
 			*pc += 2;
 			break;
-		case 0x000E: /* 00EE */
+		case 0x000E: /* 00EE - RET */
 			--*sp;
 			*pc = stack[*sp];
 			*pc += 2;
@@ -149,10 +149,10 @@ void chip8_emulate_cycle(struct chip8 *chip)
 			break;
 		}
 		break;
-	case 0x1000: /* 1NNN */
+	case 0x1000: /* 1NNN - JP addr */
 		*pc = OPCODE_GET_NNN(opcode);
 		break;
-	case 0x2000: /* 2NNN */
+	case 0x2000: /* 2NNN - CALL addr */
 		stack[*sp] = *pc;
 		if (++*sp >= STACK_LEVEL) {
 			CC_ERROR("Out of stack!\n");
@@ -160,65 +160,65 @@ void chip8_emulate_cycle(struct chip8 *chip)
 		}
 		*pc = OPCODE_GET_NNN(opcode);
 		break;
-	case 0x3000: /* 3XNN */
+	case 0x3000: /* 3XNN - SE Vx, byte */
 		*pc += V[OPCODE_GET_X_ID(opcode)] == OPCODE_GET_0NN(opcode) ? 4 : 2;
 		break;
-	case 0x4000: /* 4XNN */
+	case 0x4000: /* 4XNN - SNE Vx, byte */
 		*pc += V[OPCODE_GET_X_ID(opcode)] != OPCODE_GET_0NN(opcode) ? 4 : 2;
 		break;
-	case 0x5000: /* 5XY0 */
+	case 0x5000: /* 5XY0 - SE Vx, Vy */
 		*pc += V[OPCODE_GET_X_ID(opcode)] == V[OPCODE_GET_Y_ID(opcode)] ? 4 : 2;
 		break;
-	case 0x6000: /* 6XNN */
+	case 0x6000: /* 6XNN - LD Vx, byte */
 		V[OPCODE_GET_X_ID(opcode)] = OPCODE_GET_0NN(opcode);
 		*pc += 2;
 		break;
-	case 0x7000: /* 7XNN */
+	case 0x7000: /* 7XNN - ADD Vx, byte */
 		V[OPCODE_GET_X_ID(opcode)] += OPCODE_GET_0NN(opcode);
 		*pc += 2;
 		break;
 	case 0x8000:
 		switch (OPCODE_GET_00N(opcode)) {
-		case 0x0000: /* 8XY0 */
+		case 0x0000: /* 8XY0 - LD Vx, Vy */
 			V[OPCODE_GET_X_ID(opcode)] = V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0001: /* 8XY1 */
+		case 0x0001: /* 8XY1 - OR Vx, Vy */
 			V[OPCODE_GET_X_ID(opcode)] |= V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0002: /* 8XY2 */
+		case 0x0002: /* 8XY2 - AND Vx, Vy */
 			V[OPCODE_GET_X_ID(opcode)] &= V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0003: /* 8XY3 */
+		case 0x0003: /* 8XY3 - XOR Vx, Vy */
 			V[OPCODE_GET_X_ID(opcode)] ^= V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0004: /* 8XY4 */
+		case 0x0004: /* 8XY4 - ADD Vx, Vy */
 			/* Check if there's a carry */
 			V[0xF] = V[OPCODE_GET_Y_ID(opcode)] > (0xFF - V[OPCODE_GET_X_ID(opcode)]) ? 1 : 0;
 			V[OPCODE_GET_X_ID(opcode)] += V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0005: /* 8XY5 */
+		case 0x0005: /* 8XY5 - SUB Vx, Vy */
 			/* Check if there's a borrow */
 			V[0xF] = V[OPCODE_GET_X_ID(opcode)] < V[OPCODE_GET_Y_ID(opcode)] ? 0 : 1;
 			V[OPCODE_GET_X_ID(opcode)] -= V[OPCODE_GET_Y_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0006: /* 8XY6 */
+		case 0x0006: /* 8XY6 - SHR Vx {, Vy} */
 			V[0xF] = V[OPCODE_GET_X_ID(opcode)] & 0x1;
 			V[OPCODE_GET_X_ID(opcode)] >>= 1;
 			*pc += 2;
 			break;
-		case 0x0007: /* 8XY7 */
+		case 0x0007: /* 8XY7 - SUBN Vx, Vy */
 			/* Check if there's a borrow */
 			V[0xF] = V[OPCODE_GET_X_ID(opcode)] > V[OPCODE_GET_Y_ID(opcode)] ? 0 : 1;
 			V[OPCODE_GET_X_ID(opcode)] = V[OPCODE_GET_Y_ID(opcode)] - V[OPCODE_GET_X_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x000E: /* 8XYE */
+		case 0x000E: /* 8XYE - SHL Vx {, Vy} */
 			V[0xF] = V[OPCODE_GET_X_ID(opcode)] >> 7;
 			V[OPCODE_GET_X_ID(opcode)] <<= 1;
 			*pc += 2;
@@ -228,21 +228,21 @@ void chip8_emulate_cycle(struct chip8 *chip)
 			break;
 		}
 		break;
-	case 0x9000: /* 9XY0 */
+	case 0x9000: /* 9XY0 - SNE Vx, Vy */
 		*pc += V[OPCODE_GET_X_ID(opcode)] != V[OPCODE_GET_Y_ID(opcode)] ? 4 : 2;
 		break;
-	case 0xA000: /* ANNN */
+	case 0xA000: /* ANNN - LD I, addr */
 		*addr = OPCODE_GET_NNN(opcode);
 		*pc += 2;
 		break;
-	case 0xB000: /* BNNN */
+	case 0xB000: /* BNNN - JP V0, addr */
 		*pc = V[0] + OPCODE_GET_NNN(opcode);
 		break;
-	case 0xC000: /* CXNN */
+	case 0xC000: /* CXNN - RND Vx, byte */
 		V[OPCODE_GET_X_ID(opcode)] = (rand() % 0xFF) & OPCODE_GET_0NN(opcode);
 		*pc += 2;
 		break;
-	case 0XD000: /* DXYN */
+	case 0XD000: /* DXYN - DRW Vx, Vy, nibble */
 		draw_sprite(chip,
 					V[OPCODE_GET_X_ID(opcode)],
 					V[OPCODE_GET_Y_ID(opcode)],
@@ -251,10 +251,10 @@ void chip8_emulate_cycle(struct chip8 *chip)
 		break;
 	case 0xE000:
 		switch (OPCODE_GET_0NN(opcode)) {
-		case 0x009E: /* EX9E */
+		case 0x009E: /* EX9E - SKP Vx */
 			*pc += key[OPCODE_GET_X_ID(opcode)] ? 4 : 2;
 			break;
-		case 0x00A1: /* EXA1 */
+		case 0x00A1: /* EXA1 - SKNP Vx */
 			*pc += !key[OPCODE_GET_X_ID(opcode)] ? 4 : 2;
 			break;
 		default:
@@ -264,11 +264,11 @@ void chip8_emulate_cycle(struct chip8 *chip)
 		break;
 	case 0xF000:
 		switch (OPCODE_GET_0NN(opcode)) {
-		case 0x0007: /* FX07 */
+		case 0x0007: /* FX07 - LD Vx, DT */
 			V[OPCODE_GET_X_ID(opcode)] = *delay;
 			*pc += 2;
 			break;
-		case 0x000A: /* FX0A */
+		case 0x000A: /* FX0A - LD Vx, K */
 			for (int i = 0; i < 16; i++)
 				if (key[i]) {
 					V[OPCODE_GET_X_ID(opcode)] = i;
@@ -278,38 +278,38 @@ void chip8_emulate_cycle(struct chip8 *chip)
 				return;
 			*pc += 2;
 			break;
-		case 0x0015: /* FX15 */
+		case 0x0015: /* FX15 - LD DT, Vx */
 			*delay = V[OPCODE_GET_X_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0018: /* FX18 */
+		case 0x0018: /* FX18 - LD ST, Vx */
 			*sound = V[OPCODE_GET_X_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x001E: /* FX1E */
+		case 0x001E: /* FX1E - ADD I, Vx */
 			/* Check if there's a overflow */
 			V[0xF] = *addr + V[OPCODE_GET_X_ID(opcode)] > 0xFFF ? 1 : 0;
 			*addr += V[OPCODE_GET_X_ID(opcode)];
 			*pc += 2;
 			break;
-		case 0x0029: /* FX29 */
+		case 0x0029: /* FX29 - LD F, Vx */
 			*addr = V[OPCODE_GET_X_ID(opcode)] * 5;
 			*pc += 2;
 			break;
-		case 0x0033: /* FX33 */
+		case 0x0033: /* FX33 - LD B, Vx */
 			memory[*addr] = V[OPCODE_GET_X_ID(opcode)] / 100;
 			memory[*addr + 1] = (V[OPCODE_GET_X_ID(opcode)] / 10) % 10;
 			memory[*addr + 2] = (V[OPCODE_GET_X_ID(opcode)] % 100) % 10;
 			*pc += 2;
 			break;
-		case 0x0055: /* FX55 */
+		case 0x0055: /* FX55 - LD [I], Vx */
 			for (int i = 0; i < OPCODE_GET_X_ID(opcode); i++)
 				memory[*addr + i] = V[i];
 			/* on the original interpreter, when the operation is done I = I + X + 1 */
 			*addr += OPCODE_GET_X_ID(opcode) + 1;
 			*pc += 2;
 			break;
-		case 0x0065: /* FX65 */
+		case 0x0065: /* FX65 - LD Vx, [I] */
 			for (int i = 0; i < OPCODE_GET_X_ID(opcode); i++)
 				V[i] = memory[*addr + i];
 			/* on the original interpreter, when the operation is done I = I + X + 1 */
