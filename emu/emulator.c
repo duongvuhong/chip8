@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <GL/glut.h>
+
+#define SUPPORT_SCHIP_48
 
 #include "common.h"
 #include "chip8.h"
@@ -27,15 +30,27 @@ static void draw_pixel(int x, int y)
 
 static void update_quads(void)
 {
-	for (int y = 0; y < 32; ++y)
-		for (int x = 0; x < 64; ++x) {
-			if (chip.gfx[y * 64 + x] == 0)
-				glColor3f(0.0f, 0.0f, 0.0f);
-			else
-				glColor3f(1.0f, 1.0f, 1.0f);
+	if (chip.extend) {
+		for (int y = 0; y < 64; ++y)
+			for (int x = 0; x < 128; ++x) {
+				if (chip.xgfx[y * 64 + x] == 0)
+					glColor3f(0.0f, 0.0f, 0.0f);
+				else
+					glColor3f(1.0f, 1.0f, 1.0f);
 
-			draw_pixel(x, y);
-		}
+				draw_pixel(x, y);
+			}
+	} else {
+		for (int y = 0; y < 32; ++y)
+			for (int x = 0; x < 64; ++x) {
+				if (chip.gfx[y * 64 + x] == 0)
+					glColor3f(0.0f, 0.0f, 0.0f);
+				else
+					glColor3f(1.0f, 1.0f, 1.0f);
+
+				draw_pixel(x, y);
+			}
+	}
 }
 
 static void emulator_reshape(GLsizei w, GLsizei h)
@@ -150,6 +165,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	srand(time(NULL));
 	chip8_init(&chip);
 	chip8_load(&chip, argv[1]);
 
