@@ -154,7 +154,7 @@ void chip8_emulate_cycle(struct chip8 *chip)
 		break;
 	case 0x2000: /* 2NNN */
 		stack[*sp] = *pc;
-		if (++*sp > STACK_LEVEL) {
+		if (++*sp >= STACK_LEVEL) {
 			CC_ERROR("Out of stack!\n");
 			exit(2);
 		}
