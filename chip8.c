@@ -193,10 +193,11 @@ static void scroll_display(struct chip8 *chip, uint8_t n, enum navigation nav)
 
 void chip8_init(struct chip8 *chip)
 {
-	chip->pc = 0x200; /* program counter starts at 0x200 */
-	chip->opcode = 0; /* reset opcode */
-	chip->reg16 = 0;  /* reset register address */
-	chip->sp = 0;     /* reset stack pointer */
+	chip->pc = 0x200;    /* program counter starts at 0x200 */
+	chip->opcode = 0;    /* reset opcode */
+	chip->reg16 = 0;     /* reset register address */
+	chip->sp = 0;        /* reset stack pointer */
+	chip->compa = FALSE; /* reset compatibility */
 
 	/* clear display */
 	clear_screen(chip);
@@ -268,6 +269,7 @@ void chip8_emulate_cycle(struct chip8 *chip)
 	uint16_t *sp = &chip->sp;
 	uint8_t *delay = &chip->delay_timer;
 	uint8_t *sound = &chip->sound_timer;
+	uint8_t *copa = &chip->compa;
 #ifdef SUPPORT_SCHIP_48
 	uint8_t *rpl = chip->rpl;
 	uint8_t *extend = &chip->extend;
@@ -296,6 +298,10 @@ void chip8_emulate_cycle(struct chip8 *chip)
 		case 0x00EE: /* 00EE - RET */
 			--*sp;
 			*pc = stack[*sp];
+			*pc += 2;
+			break;
+		case 0x00FA: /* 00FA - [EMU] turn on copatibility mode */
+			*copa = TRUE;
 			*pc += 2;
 			break;
 #ifdef SUPPORT_SCHIP_48
@@ -494,14 +500,14 @@ void chip8_emulate_cycle(struct chip8 *chip)
 			break;
 		case 0x0055: /* FX55 - LD [I], Vx */
 			memcpy(memory + *addr, V, OPCODE_GET_X_ID(opcode));
-			/* the original interpreter, when the operation is done I = I + X + 1 */
-			*addr += OPCODE_GET_X_ID(opcode) + 1;
+			if (chip->compa)
+				*addr += OPCODE_GET_X_ID(opcode) + 1;
 			*pc += 2;
 			break;
 		case 0x0065: /* FX65 - LD Vx, [I] */
 			memcpy(V, memory + *addr, OPCODE_GET_X_ID(opcode));
-			/* the original interpreter, when the operation is done I = I + X + 1 */
-			*addr += OPCODE_GET_X_ID(opcode) + 1;
+			if (chip->compa)
+				*addr += OPCODE_GET_X_ID(opcode) + 1;
 			*pc += 2;
 			break;
 #ifdef SUPPORT_SCHIP_48

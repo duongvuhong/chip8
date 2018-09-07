@@ -35,6 +35,7 @@ struct chip8 {
 	uint8_t delay_timer;
 	uint8_t sound_timer;
 	uint8_t key[KEYPAD];
+	uint8_t compa;
 #ifdef SUPPORT_SCHIP_48
 	uint8_t xgfx[XSCREEN_PIXELS];
 	uint8_t rpl[RPL_USER_FLAGS];
