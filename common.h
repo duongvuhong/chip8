@@ -2,6 +2,7 @@
 # define _COMMON_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef __GNUC__
@@ -48,9 +49,9 @@
 #define STRING_CONTAIN(s, ss) (strstr(s, ss) != NULL)
 #define STRING_EMPTY(s1)      (strlen(s1) == 0)
 
-#define CC_PRINT
+#define RANDOM_BYTE ((uint8_t)(rand() % 256))
 
-#ifdef CC_PRINT
+#ifdef CC_VERBOSE
 #define CC_INFO(format, ...) \
 	fprintf(stdout, "INFO: %s:%i:%s(): " format, \
 				__FILE__, __LINE__, __func__, ##__VA_ARGS__);
@@ -67,5 +68,21 @@
 #define CC_WARNING(format, ...)
 #define CC_ERROR(format, ...)
 #endif
+
+#define RETURN_WITH_ERRMSG_IF(exp, ret, format, ...) \
+do {                                                 \
+	if (exp) {                                       \
+		CC_ERROR(format, ##__VA_ARGS__);             \
+		return (ret);                                \
+	}                                                \
+} while (0)
+
+#define ASSERT_WITH_ERRMSG_IF(exp, ret, format, ...) \
+do {                                                 \
+	if (exp) {                                       \
+		CC_ERROR(format, ##__VA_ARGS__);             \
+		exit (ret);                                  \
+	}                                                \
+} while (0)
 
 #endif
