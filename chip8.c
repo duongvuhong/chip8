@@ -1,7 +1,16 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "common.h"
 #include "chip8.h"
+
+#define UNKNOWN_OPCODE(op, kk) \
+do {                                                         \
+	CC_ERROR("Unknown: opcode(0x%x) kk(0x%02x)\n", op, kk);  \
+	exit(42);                                                \
+} while (0)
 
 #define opcode       (chip->opcode)
 #define memory       (chip->memory)
@@ -47,28 +56,23 @@ static inline void clear_screen(chip8_t *chip)
 
 static void draw_sprite(chip8_t *chip, uint8_t x, uint8_t y, uint8_t h)
 {
-	uint8_t p;
-
-	if (h == 0) /* fallback from extend mode */
-		h = 16;
-
-	/* check position overflow */
-	while (x > CHIP8_SCREEN_WIDTH)
-		x -= CHIP8_SCREEN_WIDTH;
-	while (y > CHIP8_SCREEN_HEIGHT)
-		y -= CHIP8_SCREEN_HEIGHT;
-
 	flag = 0;
 
-	for (int r = 0; r < h; r++) {
-		p = memory[I + r];
-		for (int n = 0; n < 8; n++) {
-			if ((p & (0x80 >> n)) != 0) {
-				if (gfx[(y + r) * CHIP8_SCREEN_WIDTH + (x + n)] != 0)
-					flag = 1;
+	for (unsigned byte_index = 0; byte_index < h; byte_index++) {
+		uint8_t byte = memory[I + byte_index];
 
-				gfx[(y + r) * CHIP8_SCREEN_WIDTH + (x + n)] ^= 1;
-			}
+		for (unsigned bit_index = 0; bit_index < 8; bit_index++) {
+			/* the value of the bit in the sprite */
+			uint8_t bit = (byte >> bit_index) & 0x01;
+			/* the value of the current pixel on the screen */
+			uint8_t *pixel = &gfx[GFX_INDEX((y + byte_index) % CHIP8_SCREEN_HEIGHT, (x + (7 - bit_index)) % CHIP8_SCREEN_WIDTH)];
+			
+			/* if drawing to the screen would cause any pixel to be erased, set flag to 1 */
+			if (bit == 1 && *pixel == 1)
+				flag = 1;
+			
+			/* draw this pixel */
+			*pixel ^= bit;
 		}
 	}
 
@@ -80,8 +84,11 @@ void chip8_init(chip8_t *chip)
 	memset(chip, 0, sizeof(chip8_t));
 
 	pc = 0x200;
-	compa = TRUE;
+	compa = FALSE;
+	draw_flag = TRUE;
 	memcpy(memory, chip8_fontset, 80 * sizeof(char));
+
+	srand(time(NULL));
 }
 
 int chip8_load(chip8_t *chip, const char *rom)
@@ -141,8 +148,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 			reposition_pc(pc + 2);
 			break;
 		default:
-			CC_ERROR("Unknown opcode [0x0000]: 0x%X\n", opcode);
-			break;
+			UNKNOWN_OPCODE(opcode, kk);
 		}
 		break;
 	case 0x1000: /* 1NNN - JP addr */
@@ -185,27 +191,27 @@ void chip8_emulate_cycle(chip8_t *chip)
 			V[x] ^= V[y];
 			break;
 		case 0x04: /* 8XY4 - ADD Vx, Vy */
-			V[0xF] = V[y] > (0xFF - V[x]) ? 1 : 0; /* Check if there's a carry */
+			flag = V[y] > (0xFF - V[x]) ? 1 : 0; /* Check if there's a carry */
 			V[x] += V[y];
 			break;
 		case 0x05: /* 8XY5 - SUB Vx, Vy */
-			V[0xF] = V[x] > V[y] ? 1 : 0; /* Check if there's a borrow */
+			flag = V[x] > V[y] ? 1 : 0; /* Check if there's a borrow */
 			V[x] -= V[y];
 			break;
 		case 0x06: /* 8XY6 - SHR Vx {, Vy} */
-			V[0xF] = V[x] & 0x01;
+			flag = V[x] & 0x01;
 			V[x] >>= 1;
 			break;
 		case 0x07: /* 8XY7 - SUBN Vx, Vy */
-			V[0xF] = V[y] > V[x] ? 1 : 0; /* Check if there's a borrow */
+			flag = V[y] > V[x] ? 1 : 0; /* Check if there's a borrow */
 			V[x] = V[y] - V[x];
 			break;
 		case 0x0E: /* 8XYE - SHL Vx {, Vy} */
-			V[0xF] = (V[x] >> 7) & 0x01;
+			flag = (V[x] >> 7) & 0x01;
 			V[x] <<= 1;
 			break;
 		default:
-			CC_ERROR("Unknown opcode [0x8000]: 0x%X\n", opcode);
+			UNKNOWN_OPCODE(opcode, kk);
 		}
 		reposition_pc(pc + 2);
 		break;
@@ -215,7 +221,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 			reposition_pc(pc + (V[x] != V[y] ? 4 : 2));
 			break;
 		default:
-			CC_ERROR("Unknown opcode [0x8000]: 0x%X\n", opcode);
+			UNKNOWN_OPCODE(opcode, kk);
 		}
 		break;
 	case 0xA000: /* ANNN - LD I, addr */
@@ -242,7 +248,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 			reposition_pc(pc + (!key[V[x]] ? 4 : 2));
 			break;
 		default:
-			CC_ERROR("Unknown opcode [0xE000]: 0x%X\n", opcode);
+			UNKNOWN_OPCODE(opcode, kk);
 		}
 		break;
 	case 0xF000: /* misc */
@@ -251,6 +257,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 			V[x] = delay_timer;
 			break;
 		case 0x000A: /* FX0A - LD Vx, K */
+			printf("Waiting for key instruction\n");
 			while (TRUE) {
 				for (int i = 0; i < CHIP8_KEY_NUMBER; i++) {
 					if (key[i]) {
@@ -259,7 +266,8 @@ void chip8_emulate_cycle(chip8_t *chip)
 					}
 				}
 			}
-			key_pressed:
+key_pressed:
+			printf("A key is pressed");
 			break;
 		case 0x0015: /* FX15 - LD DT, Vx */
 			delay_timer = V[x];
@@ -269,7 +277,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 			break;
 		case 0x001E: /* FX1E - ADD I, Vx */
 			/* Check if there's a overflow */
-			V[0xF] = I + V[x] > 0xFFF ? 1 : 0;
+			flag = I + V[x] > 0xFFF ? 1 : 0;
 			I += V[x];
 			break;
 		case 0x0029: /* FX29 - LD F, Vx */
@@ -278,7 +286,7 @@ void chip8_emulate_cycle(chip8_t *chip)
 		case 0x0033: /* FX33 - LD B, Vx */
 			memory[I]     = (V[x] / 100) % 10;
 			memory[I + 1] = (V[x] / 10) % 10;
-			memory[I + 2] = (V[x] / 1) * 10;
+			memory[I + 2] = (V[x] / 1) % 10;
 			break;
 		case 0x0055: /* FX55 - LD [I], Vx */
 			memcpy(memory + I, V, x + 1);
@@ -291,12 +299,12 @@ void chip8_emulate_cycle(chip8_t *chip)
 				I += x + 1;
 			break;
 		default:
-			CC_ERROR("Unknown opcode [0xF000]: 0x%X\n", opcode);
+			UNKNOWN_OPCODE(opcode, kk);
 		}
 		reposition_pc(pc + 2);
 		break;
 	default:
-		CC_ERROR("Unknown opcode: 0x%X\n", opcode);
+		UNKNOWN_OPCODE(opcode, kk);
 		break;
 	}
 }
@@ -308,7 +316,7 @@ void chip8_tick(chip8_t *chip)
 
 	if (sound_timer > 0) {
 		--sound_timer;
-		if (sound_timer == 1)
+		if (sound_timer == 0)
 			printf("BEEP!\n");
 	}
 }

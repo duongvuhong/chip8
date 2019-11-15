@@ -32,6 +32,8 @@ typedef struct {
 	uint8_t draw_flag;
 } chip8_t;
 
+#define GFX_INDEX(r, c) ((r) * CHIP8_SCREEN_WIDTH + (c))
+
 extern void chip8_init(chip8_t *);
 extern int chip8_load(chip8_t *, const char *);
 extern void chip8_emulate_cycle(chip8_t *);
