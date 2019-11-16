@@ -1,9 +1,51 @@
-# About CHIP-8
+# Table of Contents
+
+* [Install](#Install)
+    * [Dependencies](#Dependencies)
+    * [Compile](#Compile)
+    * [Run](#Run)
+* [CHIP8](#CHIP8)
+    * [About](#About)
+    * [Memory](#Memory)
+    * [Registers](#Registers)
+    * [Keyboard](#Keyboard)
+    * [Display](#Display)
+    * [Timer and Sound](#Timer-and-Sound)
+    * [Instructions](#Instructions)
+* [TODO](#TODO)
+
+# Install
+## Dependencies
+* Linux: freeglut3-dev(Debian-based distro), freeglut-devel-3*(Redhat-based distro)
+* Windows: not support for now
+* MacOS: not test but should work with freeglut3 dev package installed
+## Compile
+```
+$ make
+```
+## Run
+```
+$ ./emulator roms/games/Space\ Invaders\ \[David\ Winter\].ch8
+```
+
+_Please read introduction txt file according to a ROM for more details. Enjoy ^_^!!!_
+
+```
+         CHIP8                            PC Keyboard
+| - | - | - | - | - | - |       | - | - | - | - | - | - |
+| * | 1 | 2 | 3 | C | * |       | * | 1 | 2 | 3 | 4 | * |
+| * | 4 | 5 | 6 | D | * |   ->  | * | Q | W | E | R | * | 
+| * | 7 | 8 | 9 | E | * |       | * | A | S | D | F | * |
+| * | A | 0 | B | F | * |       | * | Z | X | C | V | * |
+| - | - | - | - | - | - |       | - | - | - | - | - | - |
+```
+
+# CHIP8
+## About
 CHIP8 is a simple, interpreted, programming language which was first used on some do-it-yourself computer systems in the late 1970s and early 1980s. The COSMAC VIP, DREAM 6800, and ETI computers are a few examples. These computers typically were designed to use a television as a display, had between 1 and 4K of RAM, and used a 16-key hexadecimal keypad for input.
 
 In the early 1990s, the CHIP-8 language was revived by a man named Andreas Gustafsson. He created a CHIP-8 interpreter for the HP graphing calculator, called CHIP-48. The HP48 was lacking a way to easily make fast games at the time, and CHIp-8 was the answer. CHIP-48 later begat Super CHIP48, a modification of CHIP-48 which allowed higher resolution graphics, as well as other graphical enhancements.
 
-# CHIP-8 specifications
 ## Memory
 The CHIP-8 language is capable of accessing up to 4KB (4096 bytes) of RAM, from location 0x000 to 0xFFF. The first 512 bytes, from 0x000 to 0x1FF, are where the original interpreter was located, and should not be used by programs.
 
@@ -87,7 +129,7 @@ Programs may also refer to a group of sprites representing the hexadecimal digit
 --------------------------
 ```
 
-## Timers and Sound
+## Timer and Sound
 CHIP-8 provides 2 timers, a delay timer and a sound timer.
 
 The delay timer is active whenever the delay timer register (DT) is non-zero. This timer does nothing more than subtract 1 from the value of DT at a rate of 60Hz. When DT reaches 0, it deactivates.
@@ -96,7 +138,7 @@ The sound timer is active whenever the sound timer register (ST) is non-zero. Th
 
 The sound produced by the CHIP-8 interpreter has only one tone. The frequency of this tone is decided by the author of the interpreter.
 
-## CHIP-8 Instructions
+## Instructions
 The original implementation of the CHIP-8 language includes 36 different instructions, including math, graphics, and flow control functions.
 
 Super CHIP-48 added an additional	10 instructions, for a total of 46.
@@ -115,3 +157,7 @@ kk or byte - An 8-bit value, the lowest 8 bits of the instruction
 ```
 
 **[CHIP-8 Instructions Table](https://en.wikipedia.org/wiki/CHIP-8)**
+
+# TODO
+* Fix: many ROM don't work.
+* Support: SCHIP-48 instructions
