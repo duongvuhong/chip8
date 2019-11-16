@@ -44,7 +44,7 @@ _Please read introduction txt file according to a ROM for more details. Enjoy ^_
 ## About
 CHIP8 is a simple, interpreted, programming language which was first used on some do-it-yourself computer systems in the late 1970s and early 1980s. The COSMAC VIP, DREAM 6800, and ETI computers are a few examples. These computers typically were designed to use a television as a display, had between 1 and 4K of RAM, and used a 16-key hexadecimal keypad for input.
 
-In the early 1990s, the CHIP-8 language was revived by a man named Andreas Gustafsson. He created a CHIP-8 interpreter for the HP graphing calculator, called CHIP-48. The HP48 was lacking a way to easily make fast games at the time, and CHIp-8 was the answer. CHIP-48 later begat Super CHIP48, a modification of CHIP-48 which allowed higher resolution graphics, as well as other graphical enhancements.
+In the early 1990s, the CHIP-8 language was revived by a man named Andreas Gustafsson. He created a CHIP-8 interpreter for the HP graphing calculator, called CHIP-48. The HP48 was lacking a way to easily make fast games at the time, and CHIP-8 was the answer. CHIP-8 later begat Super CHIP-48, a modification of CHIP-8 which allowed higher resolution graphics, as well as other graphical enhancements.
 
 ## Memory
 The CHIP-8 language is capable of accessing up to 4KB (4096 bytes) of RAM, from location 0x000 to 0xFFF. The first 512 bytes, from 0x000 to 0x1FF, are where the original interpreter was located, and should not be used by programs.
@@ -82,6 +82,8 @@ CHIP-8 has 16 general purpose 8-bit registers, usually referred to as Vx, where 
 
 There is also a 16-bit register called I. This register is generally used to store memory addresses, so only the lowest (rightmost) 12 bits are usually used.
 
+Super CHIP-48, which was used on the HP-48 calculators, contains 8 8-bit user-flag registers: R0-R7. They can't be directly used, but register V0-V7 can be saved to-and loaded from them.
+
 CHIP-8 also has two special purpose 8-bit registers, for the delay and sound timers. When these registers are non-zero, they are automatically decremented at a rate of 60Hz.
 
 There are also some "pseudo-registers" which are not accessable from CHIP-8 programs. The program counter (PC) should be 16-bit, and is used to store the currently executing address. The stack pointer (SP) can be 8-bit, it is used to point to the topmost level of the stack.
@@ -89,7 +91,6 @@ There are also some "pseudo-registers" which are not accessable from CHIP-8 prog
 The stack is an array of 16 16-bit values, used to store the address that the interpreter shoud return to when finished with a subroutine. CHIP-8 allows for up to 16 levels of nested subroutines.
 
 ## Keyboard
-
 The computers which originally used the CHIP-8 Language had a 16-key hexadecimal keypad with the following layout:
 
 | - | - | - | - | - | - |
@@ -110,9 +111,15 @@ The original implementation of the CHIP-8 language used a 64x32-pixel monochrome
 |(0,31)  (63,31)|
 =================
 ```
-Some other interpreters, most notably the one on the ETI 660, also had 64x48 and 64x64 modes. To my knowledge, no current interpreter supports these modes. More recently, Super CHIP-48, an interpreter for the HP48 calculator, added a 128x64-pixel mode. This mode is now supported by most of the interpreters on other platforms.
+Recently, Super CHIP-48 added a 128x64-pixel extend mode.
+```
+=================
+|(0,0)   (127,0) |
+|(0,63)  (127,63)|
+=================
+```
 
-CHIP-8 draws graphics on screen through the use of sprites. A sprite is a group of bytes which are a binary representation of the desired picture. CHIP-8 sprites may be up to 15 bytes, for a possible sprite size of 8x15.
+CHIP-8 draws graphics on screen through the use of sprites. A sprite is a group of bytes which are a binary representation of the desired picture. CHIP-8 sprites may be up to 15 bytes, for a possible sprite size of 8x15. A sprite of 16x16 size is available in extend mode.
 
 Programs may also refer to a group of sprites representing the hexadecimal digits 0 through F. These sprites are 5 bytes long, or 8x5 pixels. The data should be stored in the interpreter area of CHIP-8 memory (0x000 to 0x1FF).
 
@@ -158,6 +165,22 @@ kk or byte - An 8-bit value, the lowest 8 bits of the instruction
 
 **[CHIP-8 Instructions Table](https://en.wikipedia.org/wiki/CHIP-8)**
 
+**Super CHIP-48 Addition Instructions**
+```
+00CN*    Scroll display N lines down
+00FB*    Scroll display 4 pixels right
+00FC*    Scroll display 4 pixels left
+00FD*    Exit CHIP interpreter
+00FE*    Disable extended screen mode
+00FF*    Enable extended screen mode for full-screen graphic
+DXYN*    Show N-byte sprite from M(I) at coords (VX,VY), VF :=
+         collision. If N=0 and extended mode, show 16x16 sprite.
+FX30*    Point I to 10-byte font sprite for digit VX (0..9)
+FX75*    Store V0..VX in RPL user flags (X <= 7)
+FX85*    Read V0..VX from RPL user flags (X <= 7)
+```
+[For more details about Super CHIP-48](http://devernay.free.fr/hacks/chip8/schip.txt)
+
 # TODO
 * Fix: many ROM don't work.
-* Support: SCHIP-48 instructions
+* Support: Super CHIP-48 instructions
